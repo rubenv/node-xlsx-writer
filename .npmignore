@@ -1,0 +1,4 @@
+.npmignore
+Gruntfile.coffee
+src
+test
