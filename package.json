@@ -1,7 +1,7 @@
 {
   "name": "xlsx-writer",
   "description": "Simple XLSX writer.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "homepage": "https://github.com/rubenv/node-xlsx-writer",
   "author": {
     "name": "Ruben Vermeersch",
