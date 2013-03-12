@@ -77,6 +77,18 @@
         });
     });
 
+## Contributing
+
+  In lieu of a formal styleguide, take care to maintain the existing coding
+  style. Add unit tests for any new or changed functionality.
+
+  All source-code is written in CoffeeScript and is located in the `src`
+  folder. Do not edit the generated files in `lib`, they will get overwritten
+  (and aren't included in git anyway).
+
+  You can build and test your code using [Grunt](http://gruntjs.com/). The
+  default task will clean the source, compiled it and run the tests.
+
 ## License 
 
     (The MIT License)
