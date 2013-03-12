@@ -8,11 +8,11 @@
   
   You can install the latest version via npm:
   
-    $ npm install --save xslx-writer
+    $ npm install --save xlsx-writer
 
   Require the module:
 
-    var xlsx = require('xslx-writer');
+    var xlsx = require('xlsx-writer');
 
   Write a spreadsheet:
 
@@ -44,7 +44,38 @@
 
 ## Advanced usage
 
-  TODO
+  You can also use the full API manually. This allows you to build the
+  spreadsheet incrementally:
+
+    var XlsxWriter = require('xlsx-writer');
+
+    var writer = new XlsxWriter('mySpreadsheet.xlsx');
+
+    // Pass the number of rows and columns:
+    writer.prepare(2, 2, function (err) {
+        if (err) {
+            throw err;
+        }
+
+        // Add some rows
+        writer.addRow({
+            "Name": "Bob",
+            "Location": "Sweden"
+        });
+        writer.addRow({
+            "Name": "Alice",
+            "Location": "France"
+        });
+
+        // Finalize the spreadsheet
+        writer.pack(function (err) {
+            if (err) {
+                console.log('Something went wrong!');
+            } else {
+                console.log('All done!');
+            }
+        });
+    });
 
 ## License 
 
