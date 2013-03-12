@@ -1,4 +1,5 @@
 .npmignore
+.travis.yml
 Gruntfile.coffee
 src
 test
