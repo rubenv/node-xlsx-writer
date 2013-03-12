@@ -119,6 +119,7 @@ module.exports =
     startRow: (row) -> """<row r="#{row + 1}">"""
     endRow: """</row>"""
     cell: (index, cell) -> """<c r="#{cell}" t="s"><v>#{index}</v></c>"""
+    numberCell: (value, cell) -> """<c r="#{cell}" t="n"><v>#{value}</v></c>"""
 
     sheetFooter: """
             </sheetData>

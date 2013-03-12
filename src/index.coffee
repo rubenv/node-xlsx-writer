@@ -6,6 +6,8 @@ zipper = require('zipper')
 
 blobs = require('./blobs')
 
+numberRegex = /^[\d\.]+$/
+
 class XlsxWriter
     @write = (out, data, cb) ->
         rows = data.length
@@ -131,11 +133,15 @@ class XlsxWriter
             @stringIndex += 1
         return @stringMap[value]
 
-    _addCell: (value, col) ->
+    _addCell: (value = '', col) ->
         row = @currentRow
-        index = @_lookupString(value)
         cell = @cell(row, col)
-        @sheetStream.write(blobs.cell(index, cell))
+
+        if numberRegex.test(value)
+            @sheetStream.write(blobs.numberCell(value, cell))
+        else
+            index = @_lookupString(value)
+            @sheetStream.write(blobs.cell(index, cell))
 
     _endRow: () ->
         @sheetStream.write(blobs.endRow)
