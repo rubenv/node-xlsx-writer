@@ -1,12 +1,12 @@
 test = require('./common')
 
-test 'simple-test', [
+test 'sparse-test', [
     {
         Name: 'Bob'
         Location: 'Sweden'
+        Age: 14
     }
     {
         Name: 'Alice'
-        Location: 'France'
     }
 ]

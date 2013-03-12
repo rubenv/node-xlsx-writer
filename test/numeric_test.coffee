@@ -1,12 +1,13 @@
 test = require('./common')
 
-test 'simple-test', [
+test 'numeric-test', [
     {
         Name: 'Bob'
-        Location: 'Sweden'
+        Age: 21
     }
     {
         Name: 'Alice'
-        Location: 'France'
+        Age: 23
     }
 ]
+

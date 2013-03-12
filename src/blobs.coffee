@@ -90,32 +90,37 @@ module.exports =
         </styleSheet>
     """.replace(/\n\s*/g, '')
 
-    strings: """
+    stringsHeader: (count) -> """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
-            <si>
-                <t>Ruben</t>
-            </si>
+        <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="#{count}" uniqueCount="#{count}">
+    """.replace(/\n\s*/g, '')
+
+    string: (string) -> """
+        <si>
+            <t>#{string}</t>
+        </si>
+    """.replace(/\n\s*/g, '')
+
+    stringsFooter: """
         </sst>
     """.replace(/\n\s*/g, '')
 
-    sheet: """
+    sheetHeader: (dimensions) -> """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">
-            <dimension ref="A1:B1"/>
+            <dimension ref="#{dimensions}"/>
             <sheetViews>
                 <sheetView workbookViewId="0"/>
             </sheetViews>
             <sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>
             <sheetData>
-                <row r="1">
-                    <c r="A1" t="n">
-                        <v>100</v>
-                    </c>
-                    <c r="B1" t="s">
-                        <v>0</v>
-                    </c>
-                </row>
+    """.replace(/\n\s*/g, '')
+
+    startRow: (row) -> """<row r="#{row + 1}">"""
+    endRow: """</row>"""
+    cell: (index, cell) -> """<c r="#{cell}" t="s"><v>#{index}</v></c>"""
+
+    sheetFooter: """
             </sheetData>
         </worksheet>
     """.replace(/\n\s*/g, '')

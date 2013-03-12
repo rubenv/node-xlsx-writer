@@ -35,4 +35,4 @@ module.exports = (name, data) ->
             for row, rowNr in result
                 continue if rowNr == 0 # Header
                 for key, index in _.keys(data[0])
-                    assert.equal(row[index], data[rowNr - 1][key])
+                    assert.equal(row[index], data[rowNr - 1][key] || "")

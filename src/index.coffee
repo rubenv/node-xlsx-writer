@@ -6,39 +6,138 @@ zipper = require('zipper')
 
 blobs = require('./blobs')
 
-module.exports =
-    write: (out, data, cb) ->
-        tempPath = ''
+class XlsxWriter
+    @write = (out, data, cb) ->
+        rows = data.length
+        columns = 0
+        columns += 1 for key of data[0]
 
-        filename = (folder, name) ->
-            parts = Array::slice.call(arguments)
-            parts.unshift(tempPath)
-            return path.join.apply(@, parts)
+        writer = new XlsxWriter(out)
+        writer.prepare rows, columns, (err) ->
+            return cb(err) if err
+            for row in data
+                writer.addRow(row)
+            writer.pack(cb)
 
-        zipfile = new zipper.Zipper(out)
+    constructor: (@out) ->
+        @strings = []
+        @stringMap = {}
+        @stringIndex = 0
+        @currentRow = 0
+
+        @haveHeader = false
+        @prepared = false
+
+        @tempPath = ''
+
+        @sheetStream = null
+
+        @cellMap = []
+
+    addRow: (obj) ->
+        throw Error('Should call prepare() first!') if !@prepared
+
+        if !@haveHeader
+            @_startRow()
+            col = 1
+            for key of obj
+                @_addCell(key, col)
+                @cellMap.push(key)
+                col += 1
+            @_endRow()
+
+            @haveHeader = true
+
+        @_startRow()
+        for key, col in @cellMap
+            @_addCell(obj[key] || "", col + 1)
+        @_endRow()
+
+    prepare: (rows, columns, cb) ->
+        # Add one extra row for the header
+        dimensions = @dimensions(rows + 1, columns)
 
         async.series [
-            (cb) -> temp.mkdir 'xlsx', (err, p) ->
-                tempPath = p
-                # Debug:
-                #tempPath = 'tmp'
+            (cb) => temp.mkdir 'xlsx', (err, p) =>
+                @tempPath = p
                 cb(err)
-            (cb) -> fs.mkdir(filename('_rels'), cb)
-            (cb) -> fs.mkdir(filename('xl'), cb)
-            (cb) -> fs.mkdir(filename('xl', '_rels'), cb)
-            (cb) -> fs.mkdir(filename('xl', 'worksheets'), cb)
-            (cb) -> fs.writeFile(filename('[Content_Types].xml'), blobs.contentTypes, cb)
-            (cb) -> fs.writeFile(filename('_rels', '.rels'), blobs.rels, cb)
-            (cb) -> fs.writeFile(filename('xl', 'workbook.xml'), blobs.workbook, cb)
-            (cb) -> fs.writeFile(filename('xl', 'styles.xml'), blobs.styles, cb)
-            (cb) -> fs.writeFile(filename('xl', 'sharedStrings.xml'), blobs.strings, cb)
-            (cb) -> fs.writeFile(filename('xl', '_rels', 'workbook.xml.rels'), blobs.workbookRels, cb)
-            (cb) -> fs.writeFile(filename('xl', 'worksheets', 'sheet1.xml'), blobs.sheet, cb)
-            (cb) -> zipfile.addFile(filename('[Content_Types].xml'), '[Content_Types].xml', cb)
-            (cb) -> zipfile.addFile(filename('_rels', '.rels'), '_rels/.rels', cb)
-            (cb) -> zipfile.addFile(filename('xl', 'workbook.xml'), 'xl/workbook.xml', cb)
-            (cb) -> zipfile.addFile(filename('xl', 'styles.xml'), 'xl/styles.xml', cb)
-            (cb) -> zipfile.addFile(filename('xl', 'sharedStrings.xml'), 'xl/sharedStrings.xml', cb)
-            (cb) -> zipfile.addFile(filename('xl', '_rels', 'workbook.xml.rels'), 'xl/_rels/workbook.xml.rels', cb)
-            (cb) -> zipfile.addFile(filename('xl', 'worksheets', 'sheet1.xml'), 'xl/worksheets/sheet1.xml', cb)
+            (cb) => fs.mkdir(@_filename('_rels'), cb)
+            (cb) => fs.mkdir(@_filename('xl'), cb)
+            (cb) => fs.mkdir(@_filename('xl', '_rels'), cb)
+            (cb) => fs.mkdir(@_filename('xl', 'worksheets'), cb)
+            (cb) => fs.writeFile(@_filename('[Content_Types].xml'), blobs.contentTypes, cb)
+            (cb) => fs.writeFile(@_filename('_rels', '.rels'), blobs.rels, cb)
+            (cb) => fs.writeFile(@_filename('xl', 'workbook.xml'), blobs.workbook, cb)
+            (cb) => fs.writeFile(@_filename('xl', 'styles.xml'), blobs.styles, cb)
+            (cb) => fs.writeFile(@_filename('xl', '_rels', 'workbook.xml.rels'), blobs.workbookRels, cb)
+            (cb) =>
+                @sheetStream = fs.createWriteStream(@_filename('xl', 'worksheets', 'sheet1.xml'))
+                @sheetStream.write(blobs.sheetHeader(dimensions))
+                cb()
+        ], (err) =>
+            @prepared = true
+            cb(err)
+
+    pack: (cb) ->
+        throw Error('Should call prepare() first!') if !@prepared
+
+        zipfile = new zipper.Zipper(@out)
+
+        async.series [
+            (cb) =>
+                @sheetStream.write(blobs.sheetFooter)
+                @sheetStream.end(cb)
+            (cb) =>
+                stream = fs.createWriteStream(@_filename('xl', 'sharedStrings.xml'))
+                stream.write(blobs.stringsHeader(@strings.length))
+                for string in @strings
+                    stream.write(blobs.string(string))
+                stream.write(blobs.stringsFooter)
+                stream.end(cb)
+            (cb) => zipfile.addFile(@_filename('[Content_Types].xml'), '[Content_Types].xml', cb)
+            (cb) => zipfile.addFile(@_filename('_rels', '.rels'), '_rels/.rels', cb)
+            (cb) => zipfile.addFile(@_filename('xl', 'workbook.xml'), 'xl/workbook.xml', cb)
+            (cb) => zipfile.addFile(@_filename('xl', 'styles.xml'), 'xl/styles.xml', cb)
+            (cb) => zipfile.addFile(@_filename('xl', 'sharedStrings.xml'), 'xl/sharedStrings.xml', cb)
+            (cb) => zipfile.addFile(@_filename('xl', '_rels', 'workbook.xml.rels'), 'xl/_rels/workbook.xml.rels', cb)
+            (cb) => zipfile.addFile(@_filename('xl', 'worksheets', 'sheet1.xml'), 'xl/worksheets/sheet1.xml', cb)
         ], cb
+
+    dimensions: (rows, columns) ->
+        return "A1:#{@cell(rows, columns)}"
+
+    cell: (row, col) ->
+        colIndex = ''
+        input = (+col - 1).toString(26)
+        while input.length
+            a = input.charCodeAt(input.length - 1)
+            colIndex = String.fromCharCode(a + if a >= 48 and a <= 57 then 17 else -22) + colIndex
+            input = if input.length > 1 then (parseInt(input.substr(0, input.length - 1), 26) - 1).toString(26) else ""
+        return "#{colIndex}#{row}"
+
+    _filename: (folder, name) ->
+        parts = Array::slice.call(arguments)
+        parts.unshift(@tempPath)
+        return path.join.apply(@, parts)
+
+    _startRow: () ->
+        @sheetStream.write(blobs.startRow(@currentRow))
+        @currentRow += 1
+
+    _lookupString: (value) ->
+        if !@stringMap[value]
+            @stringMap[value] = @stringIndex
+            @strings.push(value)
+            @stringIndex += 1
+        return @stringMap[value]
+
+    _addCell: (value, col) ->
+        row = @currentRow
+        index = @_lookupString(value)
+        cell = @cell(row, col)
+        @sheetStream.write(blobs.cell(index, cell))
+
+    _endRow: () ->
+        @sheetStream.write(blobs.endRow)
+
+module.exports = XlsxWriter
