@@ -1,6 +1,8 @@
 # XLSX writer
 
   Simple XLSX writer. Reverse-engineered from sample XLSX files.
+  
+  [![Build Status](https://travis-ci.org/rubenv/node-xlsx-writer.png?branch=master)](https://travis-ci.org/rubenv/node-xlsx-writer)
 
 ## Usage
   
