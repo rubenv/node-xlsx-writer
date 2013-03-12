@@ -6,7 +6,7 @@ zipper = require('zipper')
 
 blobs = require('./blobs')
 
-numberRegex = /^[\d\.]+$/
+numberRegex = /^[1-9\.][\d\.]+$/
 
 class XlsxWriter
     @write = (out, data, cb) ->
