@@ -35,6 +35,7 @@ class XlsxWriter
         @sheetStream = null
 
         @cellMap = []
+        @cellLabelMap = {}
 
     addRow: (obj) ->
         throw Error('Should call prepare() first!') if !@prepared
@@ -90,12 +91,10 @@ class XlsxWriter
                 @sheetStream.write(blobs.sheetFooter)
                 @sheetStream.end(cb)
             (cb) =>
-                stream = fs.createWriteStream(@_filename('xl', 'sharedStrings.xml'))
-                stream.write(blobs.stringsHeader(@strings.length))
+                stringTable = ''
                 for string in @strings
-                    stream.write(blobs.string(@escapeXml(string)))
-                stream.write(blobs.stringsFooter)
-                stream.end(cb)
+                    stringTable += blobs.string(@escapeXml(string))
+                fs.writeFile(@_filename('xl', 'sharedStrings.xml'), blobs.stringsHeader(@strings.length) + stringTable + blobs.stringsFooter, cb)
             (cb) => zipfile.addFile(@_filename('[Content_Types].xml'), '[Content_Types].xml', cb)
             (cb) => zipfile.addFile(@_filename('_rels', '.rels'), '_rels/.rels', cb)
             (cb) => zipfile.addFile(@_filename('xl', 'workbook.xml'), 'xl/workbook.xml', cb)
@@ -110,11 +109,16 @@ class XlsxWriter
 
     cell: (row, col) ->
         colIndex = ''
-        input = (+col - 1).toString(26)
-        while input.length
-            a = input.charCodeAt(input.length - 1)
-            colIndex = String.fromCharCode(a + if a >= 48 and a <= 57 then 17 else -22) + colIndex
-            input = if input.length > 1 then (parseInt(input.substr(0, input.length - 1), 26) - 1).toString(26) else ""
+        if @cellLabelMap[col]
+            colIndex = @cellLabelMap[col]
+        else
+            input = (+col - 1).toString(26)
+            while input.length
+                a = input.charCodeAt(input.length - 1)
+                colIndex = String.fromCharCode(a + if a >= 48 and a <= 57 then 17 else -22) + colIndex
+                input = if input.length > 1 then (parseInt(input.substr(0, input.length - 1), 26) - 1).toString(26) else ""
+            @cellLabelMap[col] = colIndex
+
         return "#{colIndex}#{row}"
 
     _filename: (folder, name) ->
@@ -123,7 +127,7 @@ class XlsxWriter
         return path.join.apply(@, parts)
 
     _startRow: () ->
-        @sheetStream.write(blobs.startRow(@currentRow))
+        @rowBuffer = blobs.startRow(@currentRow)
         @currentRow += 1
 
     _lookupString: (value) ->
@@ -138,13 +142,13 @@ class XlsxWriter
         cell = @cell(row, col)
 
         if numberRegex.test(value)
-            @sheetStream.write(blobs.numberCell(value, cell))
+            @rowBuffer += blobs.numberCell(value, cell)
         else
             index = @_lookupString(value)
-            @sheetStream.write(blobs.cell(index, cell))
+            @rowBuffer += blobs.cell(index, cell)
 
     _endRow: () ->
-        @sheetStream.write(blobs.endRow)
+        @sheetStream.write(@rowBuffer + blobs.endRow)
 
     escapeXml: (str = '') ->
         return str.replace(/&/g, '&amp;')
