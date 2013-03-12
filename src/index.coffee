@@ -93,7 +93,7 @@ class XlsxWriter
                 stream = fs.createWriteStream(@_filename('xl', 'sharedStrings.xml'))
                 stream.write(blobs.stringsHeader(@strings.length))
                 for string in @strings
-                    stream.write(blobs.string(string))
+                    stream.write(blobs.string(@escapeXml(string)))
                 stream.write(blobs.stringsFooter)
                 stream.end(cb)
             (cb) => zipfile.addFile(@_filename('[Content_Types].xml'), '[Content_Types].xml', cb)
@@ -145,5 +145,10 @@ class XlsxWriter
 
     _endRow: () ->
         @sheetStream.write(blobs.endRow)
+
+    escapeXml: (str = '') ->
+        return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
 
 module.exports = XlsxWriter
