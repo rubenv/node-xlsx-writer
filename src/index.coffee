@@ -105,7 +105,7 @@ class XlsxWriter
         ], cb
 
     dimensions: (rows, columns) ->
-        return "A1:#{@cell(rows, columns)}"
+        return "A1:" + @cell(rows, columns)
 
     cell: (row, col) ->
         colIndex = ''
@@ -119,7 +119,7 @@ class XlsxWriter
                 input = if input.length > 1 then (parseInt(input.substr(0, input.length - 1), 26) - 1).toString(26) else ""
             @cellLabelMap[col] = colIndex
 
-        return "#{colIndex}#{row}"
+        return colIndex + row
 
     _filename: (folder, name) ->
         parts = Array::slice.call(arguments)
