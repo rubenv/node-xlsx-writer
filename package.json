@@ -37,7 +37,8 @@
     "coffee-script": "~1.6.1",
     "grunt-mkdir": "~0.1.0",
     "excel": "0.0.1",
-    "underscore": "~1.4.4"
+    "underscore": "~1.4.4",
+    "grunt-release": "~0.3.1"
   },
   "keywords": [
     "xlsx",
