@@ -38,18 +38,7 @@ module.exports = (grunt) ->
                 options:
                     reporter: 'spec'
 
-    @registerTask 'npmPack', 'Create NPM package.', ->
-        done = @async()
-
-        grunt.util.spawn
-            cmd: 'npm'
-            args: ['pack']
-        , (error, result, code) ->
-            grunt.log.writeln(result.stderr) if result.stderr
-            grunt.log.writeln(result.stdout) if result.stdout
-            done(!error)
-
     @registerTask 'default', ['test']
     @registerTask 'build', ['clean', 'coffee']
-    @registerTask 'package', ['build', 'npmPack']
+    @registerTask 'package', ['build', 'release']
     @registerTask 'test', ['build', 'mkdir', 'mochacli']
