@@ -5,6 +5,9 @@ assert = require('assert')
 describe 'Dimensions', ->
     writer = new XlsxWriter('tmp.xslx')
 
+    it 'Calculates 0x0 dimensions', ->
+        assert.equal(writer.dimensions(0, 0), 'A1:A1')
+
     it 'Calculates 1x1 dimensions', ->
         assert.equal(writer.dimensions(1, 1), 'A1:A1')
 

@@ -25,12 +25,14 @@ module.exports = (name, data) ->
 
         it 'Should have header row', ->
             assert(result.length >= 1, "Should have header row")
+            return if !data[0]
 
             for key, index in _.keys(data[0])
                 assert.equal(result[0][index], key)
 
         it 'Should contain right values', ->
             assert.equal(result.length, data.length + 1)
+            return if !data[0]
 
             for row, rowNr in result
                 continue if rowNr == 0 # Header

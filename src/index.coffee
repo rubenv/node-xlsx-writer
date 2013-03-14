@@ -112,6 +112,11 @@ class XlsxWriter
         if @cellLabelMap[col]
             colIndex = @cellLabelMap[col]
         else
+            if col == 0
+                # Provide a fallback for empty spreadsheets
+                row = 1
+                col = 1
+
             input = (+col - 1).toString(26)
             while input.length
                 a = input.charCodeAt(input.length - 1)
