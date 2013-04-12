@@ -14,7 +14,8 @@ module.exports = (name, data) ->
             xlsx.write filename, data, (err) ->
                 return done(err) if err
 
-                parser filename, (workbook) ->
+                parser filename, (err, workbook) ->
+                    assert.equal(null, err)
                     assert.notEqual(workbook, null)
 
                     result = workbook
