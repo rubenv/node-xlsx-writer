@@ -50,13 +50,16 @@ class XlsxWriter
             @_addCell(obj[key] || "", col + 1)
         @_endRow()
 
-    prepare: (rows, columns) ->
+    prepare: (rows, columns, cb) ->
         # Add one extra row for the header
         dimensions = @dimensions(rows + 1, columns)
 
         # Create header and mark this sheet as ready
         @sheetData = blobs.sheetHeader(dimensions)
         @prepared = true
+
+        # compatibility with older api
+        cb()
 
     pack: (cb) ->
         throw Error('Should call prepare() first!') if !@prepared
