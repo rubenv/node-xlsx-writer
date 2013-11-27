@@ -46,8 +46,6 @@
     "spreadsheet"
   ],
   "dependencies": {
-    "temp": "~0.5.0",
-    "async": "~0.2.6",
-    "zipper": "~0.3.0"
+    "node-zip": "~1.0.1"
   }
 }
