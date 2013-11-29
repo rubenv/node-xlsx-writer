@@ -1,6 +1,6 @@
 .npmignore
 .travis.yml
 Gruntfile.coffee
-src
+benchmarks
 test
 tmp
