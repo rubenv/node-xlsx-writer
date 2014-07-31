@@ -8,9 +8,9 @@
   xlsx-writer is dependent libzip-devel (Fedora etc.) or libzip-dev (Ubuntu etc.).
   If you got any error when you try npm install, try below first(Ubuntu):
 
-  ```bash
-    $  apt-get install libzip-dev
-  ```
+```bash
+  $  apt-get install libzip-dev
+```
 
 ## Usage
   
