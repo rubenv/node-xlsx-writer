@@ -4,6 +4,14 @@
   
   [![Build Status](https://travis-ci.org/rubenv/node-xlsx-writer.png?branch=master)](https://travis-ci.org/rubenv/node-xlsx-writer)
 
+## Dependency
+  xlsx-writer is dependent libzip-devel (Fedora etc.) or libzip-dev (Ubuntu etc.).
+  If you got any error when you try npm install, try below first(Ubuntu):
+
+```bash
+$ apt-get install libzip-dev
+```
+
 ## Usage
   
   You can install the latest version via npm:
