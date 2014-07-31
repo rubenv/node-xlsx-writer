@@ -6,11 +6,16 @@
 
 ## Dependency
   xlsx-writer is dependent libzip-devel (Fedora etc.) or libzip-dev (Ubuntu etc.).
-  If you got any error when you try npm install, try below first(Ubuntu):
+  If you got any error when you try npm install, try the following:
 
 ```bash
-$ apt-get install libzip-dev
+# Ubuntu/Debian:
+apt-get install libzip-dev
+
+# Fedora/CentOS/RHEL:
+yum install libzip-devel
 ```
+
 
 ## Usage
   
