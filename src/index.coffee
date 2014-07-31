@@ -1,8 +1,6 @@
 fs = require('fs')
-temp = require('temp')
 path = require('path')
-async = require('async')
-zipper = require('zipper')
+Zip = require('node-zip')
 
 blobs = require('./blobs')
 
@@ -15,11 +13,11 @@ class XlsxWriter
         columns += 1 for key of data[0]
 
         writer = new XlsxWriter(out)
-        writer.prepare rows, columns, (err) ->
-            return cb(err) if err
-            for row in data
-                writer.addRow(row)
-            writer.pack(cb)
+        writer.prepare(rows, columns)
+
+        for row in data
+            writer.addRow(row)
+        writer.pack(cb)
 
     constructor: (@out) ->
         @strings = []
@@ -29,10 +27,6 @@ class XlsxWriter
 
         @haveHeader = false
         @prepared = false
-
-        @tempPath = ''
-
-        @sheetStream = null
 
         @cellMap = []
         @cellLabelMap = {}
@@ -60,49 +54,47 @@ class XlsxWriter
         # Add one extra row for the header
         dimensions = @dimensions(rows + 1, columns)
 
-        async.series [
-            (cb) => temp.mkdir 'xlsx', (err, p) =>
-                @tempPath = p
-                cb(err)
-            (cb) => fs.mkdir(@_filename('_rels'), cb)
-            (cb) => fs.mkdir(@_filename('xl'), cb)
-            (cb) => fs.mkdir(@_filename('xl', '_rels'), cb)
-            (cb) => fs.mkdir(@_filename('xl', 'worksheets'), cb)
-            (cb) => fs.writeFile(@_filename('[Content_Types].xml'), blobs.contentTypes, cb)
-            (cb) => fs.writeFile(@_filename('_rels', '.rels'), blobs.rels, cb)
-            (cb) => fs.writeFile(@_filename('xl', 'workbook.xml'), blobs.workbook, cb)
-            (cb) => fs.writeFile(@_filename('xl', 'styles.xml'), blobs.styles, cb)
-            (cb) => fs.writeFile(@_filename('xl', '_rels', 'workbook.xml.rels'), blobs.workbookRels, cb)
-            (cb) =>
-                @sheetStream = fs.createWriteStream(@_filename('xl', 'worksheets', 'sheet1.xml'))
-                @sheetStream.write(blobs.sheetHeader(dimensions))
-                cb()
-        ], (err) =>
-            @prepared = true
-            cb(err)
+        # Create header and mark this sheet as ready
+        @sheetData = blobs.sheetHeader(dimensions)
+        @prepared = true
+
+        # compatibility with older api
+        cb()
 
     pack: (cb) ->
         throw Error('Should call prepare() first!') if !@prepared
 
-        zipfile = new zipper.Zipper(@out)
+        # Create Zip (JSZip port, no native deps)
+        zipFile = new Zip()
 
-        async.series [
-            (cb) =>
-                @sheetStream.write(blobs.sheetFooter)
-                @sheetStream.end(cb)
-            (cb) =>
-                stringTable = ''
-                for string in @strings
-                    stringTable += blobs.string(@escapeXml(string))
-                fs.writeFile(@_filename('xl', 'sharedStrings.xml'), blobs.stringsHeader(@strings.length) + stringTable + blobs.stringsFooter, cb)
-            (cb) => zipfile.addFile(@_filename('[Content_Types].xml'), '[Content_Types].xml', cb)
-            (cb) => zipfile.addFile(@_filename('_rels', '.rels'), '_rels/.rels', cb)
-            (cb) => zipfile.addFile(@_filename('xl', 'workbook.xml'), 'xl/workbook.xml', cb)
-            (cb) => zipfile.addFile(@_filename('xl', 'styles.xml'), 'xl/styles.xml', cb)
-            (cb) => zipfile.addFile(@_filename('xl', 'sharedStrings.xml'), 'xl/sharedStrings.xml', cb)
-            (cb) => zipfile.addFile(@_filename('xl', '_rels', 'workbook.xml.rels'), 'xl/_rels/workbook.xml.rels', cb)
-            (cb) => zipfile.addFile(@_filename('xl', 'worksheets', 'sheet1.xml'), 'xl/worksheets/sheet1.xml', cb)
-        ], cb
+        # Add static supporting files
+        zipFile.file('[Content_Types].xml', blobs.contentTypes)
+        zipFile.file('_rels/.rels', blobs.rels)
+        zipFile.file('xl/workbook.xml', blobs.workbook)
+        zipFile.file('xl/styles.xml', blobs.styles)
+        zipFile.file('xl/_rels/workbook.xml.rels', blobs.workbookRels)
+
+        # Add shared strings
+        stringTable = ''
+        for string in @strings
+            stringTable += blobs.string(@escapeXml(string))
+        stringsData = blobs.stringsHeader(@strings.length) + stringTable + blobs.stringsFooter
+        zipFile.file('xl/sharedStrings.xml', stringsData)
+
+        # Append footer to sheet
+        @sheetData += blobs.sheetFooter
+
+        # Add sheet
+        zipFile.file('xl/worksheets/sheet1.xml', @sheetData)
+
+        # Pack it up
+        results = zipFile.generate({
+            base64: false
+            compression: 'DEFLATE'    
+        })
+
+        # Write to output location
+        fs.writeFile(@out, results, 'binary', cb)
 
     dimensions: (rows, columns) ->
         return "A1:" + @cell(rows, columns)
@@ -126,11 +118,6 @@ class XlsxWriter
 
         return colIndex + row
 
-    _filename: (folder, name) ->
-        parts = Array::slice.call(arguments)
-        parts.unshift(@tempPath)
-        return path.join.apply(@, parts)
-
     _startRow: () ->
         @rowBuffer = blobs.startRow(@currentRow)
         @currentRow += 1
@@ -153,7 +140,7 @@ class XlsxWriter
             @rowBuffer += blobs.cell(index, cell)
 
     _endRow: () ->
-        @sheetStream.write(@rowBuffer + blobs.endRow)
+        @sheetData += @rowBuffer + blobs.endRow
 
     escapeXml: (str = '') ->
         return str.replace(/&/g, '&amp;')
